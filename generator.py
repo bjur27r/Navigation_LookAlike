@@ -1,16 +1,18 @@
 # tested with python2.7 and 3.4
 #!/usr/bin/env python
 # -*- coding: utf-8 -*- 
+
+#Bloque importacion de librerias
 from pyspark import Row
 from pyspark.sql.functions import col,udf, unix_timestamp, StringType
 from pyspark.sql.types import DateType
 import pandas as pd
 from pyspark import SparkContext 
 from pyspark.sql import SQLContext
-from pyspark import SparkContext 
-
+import json
 import sys
 
+#Bloque definición funciones
 def logs2(l):
 		fields = l.split(',')
 		visitor = fields[2]
@@ -23,12 +25,14 @@ def logs2(l):
 		return (visitor, url, action, pais, provincia, time,host,1)
 
 
+#Bloque Clases
 
 
 class segment_builder:
-	"""A movie recommendation engine
+	"""Clase gestora de segmentos
 	"""
 	
+	#Contructura, 
 	def __init__(self, sc, data_path):
 		self.sc = sc
 		self.data_path = data_path
@@ -90,11 +94,6 @@ class segment_builder:
 		ndf_path1 = ndf_host .withColumn('path1', udf4(ndf_host.urlClean))
 		self.ndf5 = ndf_path1.withColumn('path2', udf5(ndf_path1.urlClean))
 		
-		
-
-	
-
-
 	def segment_ts(self, host, users = True):
 
 		
@@ -130,3 +129,32 @@ class segment_builder:
 		df2 = df.to_json(orient='records')
 		return df2
 	
+	def segment_mix(self, host1,host2,name, conj, save):
+
+		self.sqlContext.registerDataFrameAsTable(self.ndf5,'ndf5')
+		
+		if conj==1 :
+			query = """	SELECT DISTINCT visitorID FROM ndf5 WHERE (host ='%s' AND host ='%s') """ %(host1,host2) 
+		else:	
+
+			query = """	SELECT DISTINCT visitorID FROM ndf5 WHERE (host ='%s' OR host ='%s') """ %(host1,host2) 
+
+		output = self.sqlContext.sql(query)
+		df = output.toPandas()
+		df = df.dropna(how='all')
+		df = df[1:len(df)]
+		vis_ids = df['visitorID'].tolist()
+		len_vis_ids = len(vis_ids)
+		segm_def = {"name":name,"IDs":vis_ids, "size":len_vis_ids}
+
+		df2 = segm_def
+
+		if save==1:
+			with open('segments.json') as data_file:
+				data = json.load(data_file)
+    			data.append(segm_def)
+    		with open('segments.json', 'w') as outfile:
+    			json.dump(data, outfile, sort_keys = True, indent = 4, ensure_ascii = False)
+			
+			
+		return df2
