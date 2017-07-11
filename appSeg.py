@@ -4,8 +4,8 @@
 from flask import Blueprint
 main = Blueprint('main', __name__)
 import json
-from generator import segment_builder
- import logging
+from generator import segment_builder, segment_similarity
+import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 from flask import Flask, request
@@ -32,7 +32,17 @@ def segment_unique():
 	segments = segment_builder_app.segments_uni()
 	return json.dumps(segments)
 
-#Generar un nuevo segmento desde la agregación conjuntiva o disyuntiva entre otros dos.
+#Llamada para correr el motor de cimilaridad, hacerlo en batch ó si se llama desde cluster
+#Update->gestionarlo con mongodb
+#http://0.0.0.0:8081/12545/updateCRM
+@main.route("/12545/updateCRM", methods=["GET"])
+def update_crm():
+	output = similarity_app.build_up_model()
+	return output
+
+
+
+#Generar un nuevo segmento desde la agregacion conjuntiva o disyuntiva entre otros dos.
 #Next Upgrade: Flexible.
 #name: Nombre Segmento.
 #host1: Primer host.
@@ -49,8 +59,10 @@ def create_app(spark_context, dataset_path):
     #declaro segment builder global
 
     global segment_builder_app 
+    global similarity_app
 
-    segment_builder_app = segment_builder(spark_context, dataset_path)    
+    segment_builder_app = segment_builder(spark_context, dataset_path) 
+    similarity_app =  segment_similarity(spark_context, dataset_path) 
     
     app = Flask(__name__)
     app.register_blueprint(main)

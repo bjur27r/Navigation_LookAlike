@@ -11,8 +11,8 @@ from pyspark import SparkContext
 from pyspark.sql import SQLContext
 import json
 import sys
-
-#Bloque definición funciones
+import math
+#Bloque definicion funciones
 def logs2(l):
 		fields = l.split(',')
 		visitor = fields[2]
@@ -152,9 +152,95 @@ class segment_builder:
 		if save==1:
 			with open('segments.json') as data_file:
 				data = json.load(data_file)
-    			data.append(segm_def)
-    		with open('segments.json', 'w') as outfile:
-    			json.dump(data, outfile, sort_keys = True, indent = 4, ensure_ascii = False)
+				data.append(segm_def)
+			with open('segments.json', 'w') as outfile:
+				json.dump(data, outfile, sort_keys = True, indent = 4, ensure_ascii = False)
 			
 			
 		return df2
+
+
+class segment_similarity:
+	"""Clase gestora de segmentos
+	"""
+	
+	#Contructura, 
+	def __init__(self,sc, data_path):
+		self.sc = sc
+		self.data_path = data_path
+
+
+
+
+	def build_up_model(self):
+		###CARGA DATOS, usamos otra fuente  QUE TIENE LA MISMA ESTRUCTURA (UserId,Publisher Id),con fuente
+		Logs = self.sc.textFile('Data/advertising.csv')
+		header = Logs.first()
+		#quito headers
+		Lorgs_norm = Logs.filter(lambda row: row != header).map(lambda l: l.split(','))
+		#Para el calculo , me quedo solo con aquellos usuarios que hayan recibido la impresion original
+		#agrupamos por publisher, y sacamos el numero de usuarios por publisher, de la forma (publisher, numero de usuarios)
+
+		Log2Rec = Lorgs_norm.map(lambda tokens: (int(tokens[2]),int(tokens[1]),1 if tokens[5] == "True" else 0)).cache()	
+		#agrupamos por usuario, y sacamos el numero de interacciones por publisher, de la forma (usuario, numero de interacciones con publishers)
+		num_InterPerUser = Log2Rec.groupBy(lambda (x,y,z): x).map(lambda (x,iterator):(x,len(iterator)))
+		#filtro los que tengan menos de dos interaccion al no ser relevantes
+		num_InterPerUser_fil = num_InterPerUser.filter(lambda (x,y): y>2) 	
+		#agrupamos por usuario, desde key y hacemos el join para tener ( usuario,publisher, imp, volumen de interacciones por usuario)
+		ints_sWithSize = Log2Rec.groupBy(lambda (x,y,z): x).join(num_InterPerUser_fil).flatMap(lambda(a,(b,c)):((x,c) for x in b))	
+		#Hago pares usuario a usuario desde la interraccion por publisher
+		ints_sWithSize_2 = ints_sWithSize.map(lambda((a,b,c),d):(b,(a,c,d)))
+		#reasigno key al publisher, y hago un join , de cara a ver cada una de las interecciones comunes entre usuarios, usuario a usuario
+		#(publisher, usuario 1, usuario 2)	
+		inter_pairs_pub = ints_sWithSize_2.join(ints_sWithSize_2)
+		#me quito duplicidades y los que son iguales, buscamos tener copres entre peliculas para cada usuario
+		ratingPairs = inter_pairs_pub.map(lambda (x,((a,b,c),(a1,b1,c1))):(x,((int(a),int(b),c),(int(a1),int(b1),c1)))).filter(lambda (x,((a,b,c),(a1,b1,c1))):a<a1)
+		#calculo las componentes para despues contruir las medidas de similaridad entre cada uno de los pares
+		vectorial_params = ratingPairs.map(lambda (a,((y,z,k),(y1,z1,k1))):((y,y1),(z*z1, z,z1,z*z,z1*z1,k,k1,1)) )
+		#reduzco los pares 
+		vectorial_params_3 = vectorial_params.reduceByKey(lambda x,y:(x[0]+y[0],x[1]+y[1],x[2]+y[2],x[3]+y[3],x[4]+y[4],x[5]+y[5],x[6]+y[6],x[7]+y[7]))
+
+		def correlation(size, dotProduct, ratingSum,rating2Sum,ratingNormSq,rating2NormSq):
+			numerator = size * dotProduct - ratingSum * rating2Sum
+			denominator = math.sqrt(size * ratingNormSq - ratingSum * ratingSum)*math.sqrt(size * rating2NormSq - rating2Sum * rating2Sum)
+			if denominator == 0:
+				corr =0 
+			else:
+				corr = numerator / denominator
+			return  corr
+
+		def cosineSimilarity(dotProduct,ratingNorm,rating2Norm): 
+			if ratingNorm * rating2Norm == 0:
+				cosi = 0
+			else: 
+				cosi = dotProduct / (ratingNorm * rating2Norm)
+
+			return cosi
+		def loop4(chunk):
+			a = []
+			for x in chunk:
+				a.append(x)
+			return a
+
+		#simmil_metrics_2= vectorial_params_3.mapValues(lambda (a,b,c,d,e,f,g,h):(h,correlation(h,a,b,c,d,e)))
+		simmil_metrics= vectorial_params_3.mapValues(lambda (a,b,c,d,e,f,g,h):(h,cosineSimilarity(a,math.sqrt(d),math.sqrt(e))))
+		#Me cojo correlaciones superiores al 50%
+		crit = simmil_metrics.filter(lambda ((a,b),(x,y)):y>0.5)
+		#desdoblo cada par que tiene una media superior al 50%
+		crit_long = crit.flatMap(lambda((a,b),(x,y)):((a,(b,y)),(b,(a,y))))
+		#genero el json con todo el CRM y lo persisto
+		#se genera un archivo con todo el  CRM y un threshold de ssimilaridad mayor del 50%
+			
+		if True:
+			crit_long_grouped = crit_long.groupByKey().map(lambda (a_lg,b_lg):{"user": a_lg,"similars":[x for x in b_lg],"len":len(b_lg)})
+			total_users = crit_long_grouped.count()
+			to_file= crit_long_grouped.toDF()
+			to_file_J=to_file.toJSON()
+			to_file_J.saveAsTextFile("Users_Data2.json")
+		
+		return total_users
+
+
+
+
+#    def segment_similarity(segment, similarity):
