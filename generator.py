@@ -252,13 +252,13 @@ class segment_similarity:
 				if  segs['name']  == name:
 					return map(str,segs['IDs'])
 		
-		segment_name = "Mujeres7"
+		
 		list2 = find_seg(segment_name)
 
 		users_file = self.sc.textFile("Users_Data.json")
 		users_file_2 = users_file.flatMap(lambda l: l.split('\n'))
 		users_file_3 = users_file_2.map(lambda Row:json.loads(Row)).map(lambda row: (row['user'],row['similars']))
-		users_file_4=users_file_3.filter(lambda (x,_):  str(x)  in list2 )
+		users_file_4=users_file_3.filter(lambda (x,_):  str(x)  in list2 ).filter(lambda (_,y):  y> similarity )
 		users_agg = users_file_4.flatMap(lambda(a,b): [(x['_1'],(x['_2'],1))for x in b ]).reduceByKey(lambda (a,b),(c,d):(a+c,b+d)).map(lambda (a,(b,c)):(a,b/c)).sortBy(lambda(x,y):y,False)
 		#Paso a formato para output
 		users_df= users_agg.toDF()	
