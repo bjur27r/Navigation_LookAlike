@@ -51,14 +51,20 @@ Se incuyen dentro de la carpeta Notebooks Pyspark todos los cuadernos de apoyo q
 
 ## Bibliografía
 
-
 Big Data Analitycs with Spark-Apress
+
 Machine Learning with spark-Packt
+
 Spark for python developer-Packt
+
 Real World Machine Learning-Manning.
+
 Spark in action -Manning.
+
 Scala in action -Manning.
+
 Flask by example-Packt
+
 Material KSCHOOL MDS.
 
 https://www.codementor.io/jadianes/building-a-recommender-with-apache-spark-python-example-app-part1-du1083qbw
