@@ -31,6 +31,7 @@ Jupyter notebook Pyspark.2.0.1
 ## Files:
 ### Datos Entrada:
 "tmp2.csv": contiene los habitos de navegación de 52K usuarios entre 86k paginas vistas.
+
 "/Data/Advertising.csv": al no encontrar resultados concluyentes en "tmp2.csv" para el motor de recomendación , se hizo uso de un archivo con la misma estructura con origen en el libro "Real Machine Learning"
 
 ### Ficheros Datos Back End:
