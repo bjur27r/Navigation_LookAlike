@@ -1,6 +1,6 @@
 # TFMbjur
 
-## AUTOR:
+## Autor:
 BJU
 ## Descripción General:
 Se trata de un Webservice gestionado en Flask, que da acceso a la gestion de segmentos de datos creados en un back end hecho en Spark-2.0.1 desde los habitos de navegación de los usuarios registrados desde un TMS(tag manager system). El TMS registra para cada usuario entre otros parametros, la URL que este visitó y el UserID assigndo por el TMS.
@@ -49,7 +49,7 @@ Server2.py:Creación Webserver en 0.0.0.0:8081
 
 Se incuyen dentro de la carpeta Notebooks Pyspark todos los cuadernos de apoyo que han servido para la elaboración del codigo.
 
-## Bibliografia
+## Bibliografía
 
 
 Big Data Analitycs with Spark-Apress
@@ -58,7 +58,7 @@ Spark for python developer-Packt
 Real World Machine Learning-Manning.
 Spark in action -Manning.
 Scala in action -Manning.
-Flask by exxample-Packt
+Flask by example-Packt
 Material KSCHOOL MDS.
 
 https://www.codementor.io/jadianes/building-a-recommender-with-apache-spark-python-example-app-part1-du1083qbw
