@@ -32,13 +32,23 @@ def segment_unique():
 	segments = segment_builder_app.segments_uni()
 	return json.dumps(segments)
 
-#Llamada para correr el motor de cimilaridad, hacerlo en batch ó si se llama desde cluster
+#Me devuelve todos los usuarios similares para un segmento y  una similaridad dada, siempre mayor de 45 grados, premisa establecida para limitar el CRM.
+#http://0.0.0.0:8081/12545/lookalike/Mujeres7/0.7
+@main.route("/12545/lookalike/<string:name>/<float:similarity>", methods=["GET"])
+def lookalike_crm(name, similarity):
+	output = similarity_app.segment_similarity(name, similarity)
+	return json.dumps(output)
+
+
+#Llamada para correr el motor de cimilaridad, hacerlo en batch o si se llama desde cluster
+#Ahora el output es un json con todo el CRM , con cada usuario y sus afines como similaridad >50%, es decir para phis entre 45 y 0 grados.
 #Update->gestionarlo con mongodb
 #http://0.0.0.0:8081/12545/updateCRM
 @main.route("/12545/updateCRM", methods=["GET"])
 def update_crm():
 	output = similarity_app.build_up_model()
 	return output
+
 
 
 

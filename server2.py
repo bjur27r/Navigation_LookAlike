@@ -1,5 +1,5 @@
 #Lanzarlo en local
-#~./spark-2.0.1-bin-hadoop2.7/bin/spark-submit server.py 
+#~./spark-2.0.1-bin-hadoop2.7/bin/spark-submit server2.py 
 import time, sys, cherrypy, os
 from paste.translogger import TransLogger
 from appSeg import create_app
