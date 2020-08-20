@@ -1,4 +1,4 @@
-# FLASK API - Navigation LookAlike Engine
+# RESP API - Spark Users Navigation LookAlike Engine
 
 ## Autor:
 BJU
